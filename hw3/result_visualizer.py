@@ -10,7 +10,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from librosa.display import specshow
 
-IMPORT_DIR = './export/baseline_beatsync_result/'
+IMPORT_DIR = './export/baseline_frame_result/'
 
 #Function to decode onehot-labeled array into note
 #Ex> 1  (C major) -----> [1 0 0 0 1 0 0 1 0 0 0 0] (C E G)

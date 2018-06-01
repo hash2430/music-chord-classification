@@ -17,9 +17,9 @@ import model_archive
 
 class Wrapper(object):
     #Settings of model, loss function, optimizer and scheduler
-    def __init__(self, input_size, num_class, learn_rate):
+    def __init__(self, model, learn_rate):
         super(Wrapper, self).__init__()
-        self.model = model_archive.RNN(input_size, num_class)
+        self.model = model
         self.criterion = nn.CrossEntropyLoss()
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=learn_rate)
         self.scheduler = ReduceLROnPlateau(self.optimizer, mode='min', factor=0.2, patience=3, verbose=True)
@@ -28,12 +28,12 @@ class Wrapper(object):
     def accuracy(self, prediction, reference):
         prediction = prediction.max(1)[1].type(torch.LongTensor)
         reference = reference.cpu()
-        correct = (prediction == reference).sum().item()
+        correct = (prediction == reference).sum().data[0]
 
         return correct/float(prediction.size(0))
 
     #Running model function for train, test and validation.
-    def run_model(self, x, y, device=0, mode='train'):
+    def run_model(self, x, y, device=0, mode='train'): #x(num_batch, batch_size, len_seq, 12)
         if mode == 'train': self.model.train()
         elif mode == 'eval': self.model.eval()
 
@@ -42,27 +42,28 @@ class Wrapper(object):
         total_loss = 0
 
         for batch in range(x.shape[0]):
-            input = Variable(torch.from_numpy(x[batch:batch+1])).type(torch.FloatTensor)
-            label = Variable(torch.LongTensor(y[batch]))
+            #input = Variable(torch.from_numpy(x[batch].transpose((1, 0, 2))).type(torch.FloatTensor)) #(32,16,12) => (16, 32, 12)
+            input = Variable(torch.from_numpy(x[batch]).type(torch.FloatTensor))
+            label = Variable(torch.LongTensor(y[batch]))#(32)
             if device > 0:
                 input = input.cuda(device - 1)
                 label = label.cuda(device - 1)
                 self.model = self.model.cuda(device - 1)
 
-            output = self.model(input)
+            output = self.model(input) #(32, 25)
             acc = self.accuracy(output, label)
-            loss = self.criterion(output, label)
+            loss = self.criterion(output, label) #label(32)
 
             if mode == 'train':
                 loss.backward()
                 self.optimizer.step()
                 self.optimizer.zero_grad()
 
-            output_list.append(output.cpu().data.numpy())
+            output_list.append(output.cpu().data.numpy()) #(num_batch, 32, 25)
             total_acc += acc
-            total_loss += loss.item()
+            total_loss += loss.data[0]
 
-        total_output = np.concatenate(output_list).argmax(axis=1)
+        total_output = np.concatenate(output_list).argmax(axis=1) #(num_batch*batch_size, 1)
         total_acc = total_acc/x.shape[0]
         total_loss = total_loss/x.shape[0]
 
