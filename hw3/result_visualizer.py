@@ -10,7 +10,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from librosa.display import specshow
 
-IMPORT_DIR = './export/baseline_beatsync_result/'
+IMPORT_DIR = './export/rnn_only_frame_do_early_stop/'
 
 #Function to decode onehot-labeled array into note
 #Ex> 1  (C major) -----> [1 0 0 0 1 0 0 1 0 0 0 0] (C E G)
@@ -58,7 +58,7 @@ def main():
     annotation_decoded = triad_decoder(annotation)
 
     #Visualize
-    chroma_result(chroma, annotation_decoded, prediction_decoded, 0, 1000)
+    chroma_result(chroma, annotation_decoded, prediction_decoded, 1000, 2000)
 
 if __name__ == '__main__':
     main()
