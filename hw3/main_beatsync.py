@@ -12,9 +12,11 @@ Following three lines are different compared to 'main_frame.py'.
 import os
 import argparse
 import numpy as np
+import torch
 
 import data_manager
 from model_wrapper import Wrapper
+import model_archive
 
 def main():
     #Directory Settings
@@ -23,11 +25,11 @@ def main():
 
     #Parameter Settings
     MODE = 'beatsync'
-    DEVICE = 0 # 0 : cpu, 1 : gpu0, 2 : gpu1, ...
+    DEVICE = 1 # 0 : cpu, 1 : gpu0, 2 : gpu1, ...
     NUM_CLASS = 25 # 0 : Silence, 1 - 12: Major, 13 - 24: Minor, Don't change this parameter
     EPOCH = 200
     BATCH_SIZE = 32
-    SEQ_LENGTH = 16
+    SEQ_LENGTH = 1
     LEARN_RATE = 0.0001
 
     parser = argparse.ArgumentParser()
@@ -63,7 +65,8 @@ def main():
 
     #Train
     print('\n--------- Training Start ---------')
-    wrapper = Wrapper(x.train.shape[-1], NUM_CLASS, LEARN_RATE)
+    model = model_archive.RNN(x.train.shape[-1], NUM_CLASS)
+    wrapper = Wrapper(model, LEARN_RATE)
 
     for e in range(EPOCH):
         _, acc_train[e], loss_train[e] = wrapper.run_model(x.train, y.train, DEVICE, 'train')

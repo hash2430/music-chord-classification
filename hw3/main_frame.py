@@ -21,7 +21,7 @@ import model_archive
 def main():
     #Directory Settings
     DATASET_DIR = './dataset/'
-    EXPORT_DIR = './export/crnn4/'
+    EXPORT_DIR = './export/crnn_simple_cnn_frame/'
 
     #Parameter Settings
     MODE = 'frame'
@@ -65,9 +65,9 @@ def main():
 
     #Train
     print('\n--------- Training Start ---------')
-    model = model_archive.CRNN(x.train.shape[-1], NUM_CLASS)
+    model = model_archive.CRNN_simple_cnn(x.train.shape[-1], NUM_CLASS)
     #model = model_archive.CRNN(16, 1, 25, 64)
-    #model = torch.load("./export/baseline_frame_result/model.pth")
+    #model = torch.load("./export/crnn4/model.pth")
     wrapper = Wrapper(model, LEARN_RATE) #(12, 25, 0.0001)
 
     for e in range(EPOCH):

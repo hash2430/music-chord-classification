@@ -26,11 +26,11 @@ class Wrapper(object):
 
     #Accuracy function works like criterion in pytorch
     def accuracy(self, prediction, reference):
-        prediction = prediction.max(1)[1].type(torch.LongTensor)
+        prediction = prediction.max(1)[1].type(torch.LongTensor) #max along 1st dim and return the maximizing indice, not the max value
         reference = reference.cpu()
-        correct = (prediction == reference).sum().data[0]
-
-        return correct/float(prediction.size(0))
+        correct = float((prediction == reference).sum().data[0])
+        correct = correct/float(prediction.size(0))
+        return correct
 
     #Running model function for train, test and validation.
     def run_model(self, x, y, device=0, mode='train'): #x(num_batch, batch_size, len_seq, 12)
@@ -52,6 +52,7 @@ class Wrapper(object):
 
             output = self.model(input) #(32, 25)
             acc = self.accuracy(output, label)
+
             loss = self.criterion(output, label) #label(32)
 
             if mode == 'train':

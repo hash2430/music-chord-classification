@@ -1,22 +1,48 @@
 '''
 model_archive.py
 
-A file that contains neural network models.
+A file that contains neural network models.%
 You can also make different model like CNN if you follow similar format like given RNN.
 '''
 import torch.nn as nn
 import numpy as np
 import torch
 
+class RNN_only(nn.Module):
+    def __init__(self, input_size, num_classes):
+        super(RNN_only, self).__init__()
+        self.lstm = nn.LSTM(input_size, 16, 1, bidirectional=True, dropout=0.25) #(input_size, hidden_size, num_layers)
+        self.linear = nn.Linear(16*2, num_classes)  # 2 for bidirection
+
+    def forward(self, x):
+        x = x.permute(1,0,2)
+        output, hidden = self.lstm(x, None) # input(16,32,12) output(16, 32, 128)
+        output = self.linear(output[-1]) #output(16,32,128) => (32,25)
+
+        return output
+
 class RNN(nn.Module):
     def __init__(self, input_size, num_classes):
         super(RNN, self).__init__()
         self.lstm = nn.LSTM(input_size, 64, 1, bidirectional=True, dropout=0.25) #(input_size, hidden_size, num_layers)
-        self.linear = nn.Linear(2*64, num_classes)  # 2 for bidirection
+        self.linear = nn.Linear(64*2, num_classes)  # 2 for bidirection
 
     def forward(self, x):
         output, hidden = self.lstm(x, None) # input(16,32,12) output(16, 32, 128)
         output = self.linear(output[-1]) #output(16,32,128) => (32,25)
+
+        return output
+
+class RNN_simple_cnn(nn.Module):
+    def __init__(self, input_size, num_classes):
+        super(RNN_simple_cnn, self).__init__()
+        self.lstm = nn.LSTM(input_size, 64, 1, bidirectional=True,
+                            dropout=0.25)  # (input_size, hidden_size, num_layers)
+        self.linear = nn.Linear(64 * 2, num_classes)  # 2 for bidirection
+
+    def forward(self, x):
+        output, hidden = self.lstm(x, None)  # input(16,32,12) output(16, 32, 128)
+        output = self.linear(output[-1])  # output(16,32,128) => (32,25)
 
         return output
 
@@ -80,6 +106,86 @@ class CRNN(nn.Module):
         assert h == 1, "the height of conv must be 1"
         conv = conv.squeeze(2)
         conv = conv.permute(2, 0, 1)  # [T, b, c]
+        # rnn features
+        output = self.rnn(conv)
+
+        return output
+
+class CRNN_new(nn.Module):
+    def __init__(self, input_size, num_class):
+        super(CRNN_new, self).__init__()
+
+        self.cnn0 = nn.Sequential(
+            nn.Conv2d(1, 64, kernel_size=5, stride=1, padding=0),
+            nn.BatchNorm2d(64),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.MaxPool2d(7, stride=7)
+        )
+        # self.cnn1 = nn.Sequential(
+        #     nn.Conv2d(64, 1, kernel_size=3, stride=1, padding=0),
+        #     nn.BatchNorm2d(1),
+        #     nn.LeakyReLU(0.2, inplace=True),
+        #     nn.MaxPool2d(3, stride=3)
+        # )
+        # self.cnn2 = nn.Sequential(
+        #     nn.Conv2d(1, 16, kernel_size=2, stride=1, padding=0),
+        #     nn.BatchNorm2d(16),
+        #     nn.LeakyReLU(0.2, inplace=True)
+        # )
+        self.rnn = nn.Sequential(
+            #BidirectionalLSTM(2, 25)
+            RNN(64, 25)
+        )
+
+    def forward(self, input):
+        # conv features
+        output = torch.unsqueeze(input, 1) # add channel dimension
+        output = output.permute(0, 1, 3, 2) #b, c, f, t
+        conv = self.cnn0(output)
+        b, c, h, w = conv.size()
+        assert h == 1, "the height of conv must be 1"
+        conv = conv.squeeze(2) #(b, c, t)
+        conv = conv.permute(2, 0, 1)
+        # rnn features
+        output = self.rnn(conv)
+
+        return output
+
+class CRNN_simple_cnn(nn.Module):
+    def __init__(self, input_size, num_class):
+        super(CRNN_simple_cnn, self).__init__()
+
+        self.cnn0 = nn.Sequential(
+            nn.Conv2d(1, 1, kernel_size=5, stride=1, padding=0),
+            nn.BatchNorm2d(1),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.MaxPool2d(7, stride=7)
+        )
+        # self.cnn1 = nn.Sequential(
+        #     nn.Conv2d(64, 1, kernel_size=3, stride=1, padding=0),
+        #     nn.BatchNorm2d(1),
+        #     nn.LeakyReLU(0.2, inplace=True),
+        #     nn.MaxPool2d(3, stride=3)
+        # )
+        # self.cnn2 = nn.Sequential(
+        #     nn.Conv2d(1, 16, kernel_size=2, stride=1, padding=0),
+        #     nn.BatchNorm2d(16),
+        #     nn.LeakyReLU(0.2, inplace=True)
+        # )
+        self.rnn = nn.Sequential(
+            #BidirectionalLSTM(2, 25)
+            RNN_simple_cnn(1, 25)
+        )
+
+    def forward(self, input):
+        # conv features
+        output = torch.unsqueeze(input, 1) # add channel dimension
+        output = output.permute(0, 1, 3, 2) #b, c, f, t
+        conv = self.cnn0(output)
+        b, c, h, w = conv.size()
+        assert h == 1, "the height of conv must be 1"
+        conv = conv.squeeze(2) #(b, c, t)
+        conv = conv.permute(2, 0, 1)
         # rnn features
         output = self.rnn(conv)
 
